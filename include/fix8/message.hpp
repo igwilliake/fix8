@@ -1141,9 +1141,7 @@ public:
 	    \return calculated checknum */
 	static unsigned calc_chksum(const char *from, const size_t sz, const unsigned offset=0, const int len=-1)
 	{
-// steroid checksum disabled as its bugged for large messages.
-//#if defined FIX8_SIZEOF_UNSIGNED_LONG && FIX8_SIZEOF_UNSIGNED_LONG == 8
-#if 0
+#if defined FIX8_SIZEOF_UNSIGNED_LONG && FIX8_SIZEOF_UNSIGNED_LONG == 8
 		// steroid chksum algorithm by charles.cooper@lambda-tg.com
 		// Basic strategy is to unroll the loop. normally adding in a loop
 		// is slow because of the dependency, the cpu has to finish each loop
@@ -1161,7 +1159,7 @@ public:
 		// and get rid of it at the end.
 
 		const unsigned long OVERFLOW_MASK (1UL << 8 | 1UL << 16 | 1UL << 24 | 1UL << 32 | 1UL << 40 | 1UL << 48 | 1UL << 56);
-		unsigned long ret{}, overflow{};
+		unsigned long ret{}, overflow{}, overflowtmp{};
 		from += offset;
 		const unsigned long elen (len != -1 ? len : sz);
 		size_t ii{};
@@ -1169,8 +1167,14 @@ public:
 		{
 			unsigned long expected_overflow((ret & OVERFLOW_MASK) ^ (OVERFLOW_MASK & *reinterpret_cast<const unsigned long*>(from + ii)));
 			ret += *reinterpret_cast<const unsigned long*>(from + ii);
-			overflow += (expected_overflow ^ ret) & OVERFLOW_MASK;
+			overflowtmp += (expected_overflow ^ ret) & OVERFLOW_MASK;
+			if (ii % 4096 == 0)
+			{
+				overflow += COLLAPSE_INT64(overflowtmp);
+				overflowtmp = 0;
+			}
 		}
+		overflow += COLLAPSE_INT64(overflowtmp);
 		ret = COLLAPSE_INT64(ret);
 		overflow = COLLAPSE_INT64(overflow);
 		for (; ii < elen; ret += from[ii++]); // add up rest one by one
