@@ -1164,7 +1164,9 @@ public:
 	    \return calculated checknum */
 	static unsigned calc_chksum(const char *from, const size_t sz, const unsigned offset=0, const int len=-1)
 	{
-#if defined FIX8_SIZEOF_UNSIGNED_LONG && FIX8_SIZEOF_UNSIGNED_LONG == 8
+// steroid checksum disabled as its bugged for large messages.
+//#if defined FIX8_SIZEOF_UNSIGNED_LONG && FIX8_SIZEOF_UNSIGNED_LONG == 8
+#if 0
 		// steroid chksum algorithm by charles.cooper@lambda-tg.com
 		// Basic strategy is to unroll the loop. normally adding in a loop
 		// is slow because of the dependency, the cpu has to finish each loop
