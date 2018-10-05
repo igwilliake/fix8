@@ -1010,20 +1010,47 @@ int Session::modify_header(MessageBase *msg)
 	return 0;
 }
 
-bool Session::send_raw(std::function<std::size_t(const Header&, const char*)> encode, char* buffer) {
-	return _connection->write_raw(encode, buffer);
+bool Session::send_raw(std::function<std::size_t(const Header&)> encode, char* buffer)
+{
+    return _connection->write_raw(encode, buffer);
 }
 
-bool Session::send_raw_process(std::function<std::size_t(const Header&, const char*)> encode, const char* buffer) {
-	char sending_time_buffer[64];
-	sending_time_buffer[date_time_format(Tickval(true), sending_time_buffer, _with_ms)] = '\0';
-    Header header{"FIXT.1.1",
-                  _sid.get_senderCompID().get().data(),
-                  _sid.get_targetCompID().get().data(),
-                  sending_time_buffer,
-                  _next_send_seq++};
-	auto size = encode(header, buffer);
-	return _connection->send(buffer, size);
+bool Session::send_raw_process(std::function<std::size_t(const Header&)> encode, const char* buffer)
+{
+    try
+    {
+        char sending_time_buffer[64];
+        sending_time_buffer[date_time_format(Tickval(true), sending_time_buffer, _with_ms)] = '\0';
+
+        slout_debug << "send_raw_process: _next_send_seq = " << _next_send_seq;
+        Header header{"FIXT.1.1",
+                      _sid.get_senderCompID().get().data(),
+                      _sid.get_targetCompID().get().data(),
+                      sending_time_buffer,
+                      _next_send_seq};
+
+        auto size = encode(header);
+        slout_debug << "Sending:" << buffer;
+        if (!_connection->send(buffer, size)) {
+            slout_error << "Message write failed: " << size << " bytes";
+            return false;
+        }
+
+        ++_next_send_seq;
+        return true;
+    }
+    catch (f8Exception& e)
+    {
+        slout_error << e.what();
+        return false;
+    }
+    catch (Poco::Exception& e)
+    {
+        slout_error << e.displayText();
+        return false;
+    }
+
+    return true;
 }
 
 //-------------------------------------------------------------------------------------------------

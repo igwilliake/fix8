@@ -652,9 +652,9 @@ public:
 	 			with the reamining messages in the vector still allocated */
 	F8API virtual size_t send_batch(const std::vector<Message *>& msgs, bool destroy=true);
 
-    F8API bool send_raw(std::function<std::size_t(const Header&, const char*)> encode, char* buffer);
+    F8API bool send_raw(std::function<std::size_t(const Header&)> encode, char* buffer);
 
-	F8API bool send_raw_process(std::function<std::size_t(const Header&, const char*)>, const char*);
+    F8API bool send_raw_process(std::function<std::size_t(const Header&)>, const char*);
 
 	/*! Process message (encode) and send.
 	    \param msg Message
