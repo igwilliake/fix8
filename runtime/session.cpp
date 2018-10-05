@@ -941,6 +941,22 @@ int Session::modify_header(MessageBase *msg)
 	return 0;
 }
 
+bool Session::send_raw(std::function<std::size_t(const Header&, const char*)> encode, char* buffer) {
+	return _connection->write_raw(encode, buffer);
+}
+
+bool Session::send_raw_process(std::function<std::size_t(const Header&, const char*)> encode, const char* buffer) {
+	char sending_time_buffer[64];
+	sending_time_buffer[date_time_format(Tickval(true), sending_time_buffer, _with_ms)] = '\0';
+    Header header{"FIXT.1.1",
+                  _sid.get_senderCompID().get().data(),
+                  _sid.get_targetCompID().get().data(),
+                  sending_time_buffer,
+                  _next_send_seq++};
+	auto size = encode(header, buffer);
+	return _connection->send(buffer, size);
+}
+
 //-------------------------------------------------------------------------------------------------
 bool Session::send_process(Message *msg) // called from the connection (possibly on separate thread)
 {

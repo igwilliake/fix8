@@ -339,6 +339,12 @@ public:
 		quit();
 	}
 
+	bool write_raw(std::function<std::size_t(const Header&, const char*)> encode, const char* buffer)
+	{
+		f8_scoped_spin_lock guard(_con_spl);
+		return _session.send_raw_process(encode, buffer);
+	}
+
 	/*! Place Fix message on outbound message queue.
 	    \param from message to send
 	    \param destroy if true delete after send
@@ -566,6 +572,11 @@ public:
 	    \param from Message to write
 	    \return true on success */
 	virtual bool write(Message& from) { return _writer.write(from); }
+
+	bool write_raw(std::function<std::size_t(const Header&, const char*)> encode, const char* buffer)
+	{
+		return _writer.write_raw(encode, buffer);
+	}
 
 	/*! Write messages to the underlying socket as a single batch.
 	    \param msgs vector of Message to write
