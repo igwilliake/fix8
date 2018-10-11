@@ -1001,6 +1001,9 @@ bool Session::send(Message& tosend, const unsigned custom_seqnum, const bool no_
 //-------------------------------------------------------------------------------------------------
 size_t Session::send_batch(const vector<Message *>& msgs, bool destroy)
 {
+        if(!_connection) {
+            return 0;
+        }
 	return _connection->write_batch(msgs, destroy);
 }
 
@@ -1012,7 +1015,7 @@ int Session::modify_header(MessageBase *msg)
 
 bool Session::send_raw(std::function<std::size_t(const Header&)> encode, char* buffer)
 {
-    return _connection->write_raw(encode, buffer);
+    return _connection && _connection->write_raw(encode, buffer);
 }
 
 bool Session::send_raw_process(std::function<std::size_t(const Header&)> encode, const char* buffer)
