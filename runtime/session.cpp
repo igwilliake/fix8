@@ -1025,22 +1025,24 @@ bool Session::send_raw_process(std::function<std::size_t(const Header&)> encode,
         char sending_time_buffer[64];
         sending_time_buffer[date_time_format(Tickval(true), sending_time_buffer, _with_ms)] = '\0';
 
-        slout_debug << "send_raw_process: _next_send_seq = " << _next_send_seq;
-        Header header{"FIXT.1.1",
+        Header header{_sid.get_beginString().get().data(),
                       _sid.get_senderCompID().get().data(),
                       _sid.get_targetCompID().get().data(),
                       sending_time_buffer,
                       _next_send_seq};
 
         auto size = encode(header);
-        slout_debug << "Sending:" << buffer;
+
         if (!_connection->send(buffer, size)) {
             slout_error << "Message write failed: " << size << " bytes";
             return false;
         }
 
+        if (_plogger && _plogger->has_flag(Logger::outbound)) {
+            plog(buffer, Logger::Info);
+        }
+
         ++_next_send_seq;
-        return true;
     }
     catch (f8Exception& e)
     {
@@ -1052,8 +1054,7 @@ bool Session::send_raw_process(std::function<std::size_t(const Header&)> encode,
         slout_error << e.displayText();
         return false;
     }
-
-    return true;
+	return true;
 }
 
 //-------------------------------------------------------------------------------------------------
