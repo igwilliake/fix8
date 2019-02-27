@@ -932,6 +932,9 @@ bool Session::send(Message& tosend, const unsigned custom_seqnum, const bool no_
 //-------------------------------------------------------------------------------------------------
 size_t Session::send_batch(const vector<Message *>& msgs, bool destroy)
 {
+        if(!_connection) {
+            return 0;
+        }
 	return _connection->write_batch(msgs, destroy);
 }
 
@@ -939,6 +942,50 @@ size_t Session::send_batch(const vector<Message *>& msgs, bool destroy)
 int Session::modify_header(MessageBase *msg)
 {
 	return 0;
+}
+
+bool Session::send_raw(const std::function<std::size_t(const Header&)>& encode, char* buffer)
+{
+	return _connection && _connection->write_raw(encode, buffer);
+}
+
+bool Session::send_raw_process(const std::function<std::size_t(const Header&)>& encode, const char* buffer)
+{
+	try
+	{
+		char sending_time_buffer[32];
+		sending_time_buffer[date_time_format(Tickval(true), sending_time_buffer, _with_ms)] = '\0';
+
+		Header header{_sid.get_beginString().get().data(),
+					  _sid.get_senderCompID().get().data(),
+					  _sid.get_targetCompID().get().data(),
+					  sending_time_buffer,
+					  _next_send_seq};
+
+		auto size = encode(header);
+
+		if (!_connection->send(buffer, size)) {
+			slout_error << "Message write failed: " << size << " bytes";
+			return false;
+		}
+
+		if (_plogger && _plogger->has_flag(Logger::outbound)) {
+			plog(buffer, Logger::Info);
+		}
+
+		++_next_send_seq;
+	}
+	catch (f8Exception& e)
+	{
+		slout_error << e.what();
+		return false;
+	}
+	catch (Poco::Exception& e)
+	{
+		slout_error << e.displayText();
+		return false;
+	}
+	return true;
 }
 
 //-------------------------------------------------------------------------------------------------
