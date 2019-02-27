@@ -944,47 +944,47 @@ int Session::modify_header(MessageBase *msg)
 	return 0;
 }
 
-bool Session::send_raw(std::function<std::size_t(const Header&)> encode, char* buffer)
+bool Session::send_raw(const std::function<std::size_t(const Header&)>& encode, char* buffer)
 {
-    return _connection && _connection->write_raw(encode, buffer);
+	return _connection && _connection->write_raw(encode, buffer);
 }
 
-bool Session::send_raw_process(std::function<std::size_t(const Header&)> encode, const char* buffer)
+bool Session::send_raw_process(const std::function<std::size_t(const Header&)>& encode, const char* buffer)
 {
-    try
-    {
-        char sending_time_buffer[64];
-        sending_time_buffer[date_time_format(Tickval(true), sending_time_buffer, _with_ms)] = '\0';
+	try
+	{
+		char sending_time_buffer[32];
+		sending_time_buffer[date_time_format(Tickval(true), sending_time_buffer, _with_ms)] = '\0';
 
-        Header header{_sid.get_beginString().get().data(),
-                      _sid.get_senderCompID().get().data(),
-                      _sid.get_targetCompID().get().data(),
-                      sending_time_buffer,
-                      _next_send_seq};
+		Header header{_sid.get_beginString().get().data(),
+					  _sid.get_senderCompID().get().data(),
+					  _sid.get_targetCompID().get().data(),
+					  sending_time_buffer,
+					  _next_send_seq};
 
-        auto size = encode(header);
+		auto size = encode(header);
 
-        if (!_connection->send(buffer, size)) {
-            slout_error << "Message write failed: " << size << " bytes";
-            return false;
-        }
+		if (!_connection->send(buffer, size)) {
+			slout_error << "Message write failed: " << size << " bytes";
+			return false;
+		}
 
-        if (_plogger && _plogger->has_flag(Logger::outbound)) {
-            plog(buffer, Logger::Info);
-        }
+		if (_plogger && _plogger->has_flag(Logger::outbound)) {
+			plog(buffer, Logger::Info);
+		}
 
-        ++_next_send_seq;
-    }
-    catch (f8Exception& e)
-    {
-        slout_error << e.what();
-        return false;
-    }
-    catch (Poco::Exception& e)
-    {
-        slout_error << e.displayText();
-        return false;
-    }
+		++_next_send_seq;
+	}
+	catch (f8Exception& e)
+	{
+		slout_error << e.what();
+		return false;
+	}
+	catch (Poco::Exception& e)
+	{
+		slout_error << e.displayText();
+		return false;
+	}
 	return true;
 }
 
