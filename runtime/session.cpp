@@ -964,7 +964,7 @@ bool Session::send_raw_process(const std::function<std::size_t(const Header&)>& 
 
 		auto size = encode(header);
 
-		if (!_connection->send(buffer, size)) {
+		if (!_connection || !_connection->send(buffer, size)) {
 			slout_error << "Message write failed: " << size << " bytes";
 			return false;
 		}
@@ -1053,7 +1053,7 @@ bool Session::send_process(Message *msg) // called from the connection (possibly
 				ptr = &_batchmsgs_buffer[0];
 				enclen = _batchmsgs_buffer.size();
 			}
-			if (!_connection->send(ptr, enclen))
+			if (!_connection || !_connection->send(ptr, enclen))
 			{
 				slout_error << "Message write failed: " << enclen << " bytes";
 				_batchmsgs_buffer.clear();
