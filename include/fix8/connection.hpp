@@ -130,6 +130,7 @@ class FIXReader : public AsyncSocket<f8String>
 {
 	enum { _max_msg_len = FIX8_MAX_MSG_LENGTH, _chksum_sz = 7 };
 	f8_atomic<bool> _socket_error;
+	f8_mutex _join_mutex;
 
 	f8_thread<FIXReader> _callback_thread;
 	f8_thread_cancellation_token _callback_cancellation_token;
@@ -299,7 +300,15 @@ public:
 
 	/*! Wait till writer thread has finished.
 		 \return 0 on success */
-	int join() { return _pmodel != pm_coro ? AsyncSocket<f8String>::join() : -1; }
+	int join()
+	{
+		if (_pmodel != pm_coro)
+		{
+			f8_scoped_lock guard(_join_mutex);
+			return AsyncSocket<f8String>::join();
+		}
+		return -1;
+	}
 
 	/// Calculate the length of the Fix message preamble, e.g. "8=FIX.4.4^A9=".
 	F8API void set_preamble_sz();
