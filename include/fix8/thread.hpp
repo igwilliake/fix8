@@ -41,17 +41,16 @@ HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <atomic>
 #include <memory>
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
-#include<pthread.h>
-#include<signal.h>
+#include <pthread.h>
+#include <signal.h>
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-#include<thread>
-#include<mutex>
+#include <thread>
+#include <mutex>
 #endif
 
 //----------------------------------------------------------------------------------------
 namespace FIX8
 {
-
 template<typename T> using f8_atomic = std::atomic <T>;
 
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
@@ -86,6 +85,9 @@ protected:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return pthread_create(&_tid, &_attr, _run<T>, sub);
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
+		if (_thread.get()) {
+			throw std::logic_error("_f8_threadcore::_start called on an active thread");
+		}
 		_thread.reset(new std::thread(_run<T>, sub));
 #endif
 		return 0;
@@ -107,7 +109,7 @@ public:
 	/// Dtor.
 	virtual ~_f8_threadcore()
 	{
-	  join();
+		join();
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		pthread_attr_destroy(&_attr);
 #endif
@@ -128,8 +130,24 @@ public:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return getid() != get_threadid() ? pthread_join(_tid, nullptr) ? -1 : 0 : -1; // prevent self-join
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-      if (_thread.get() && _thread->joinable() && getid() != get_threadid())
-			_thread->join();
+		if (_thread.get()) {
+			try {
+				_thread->join();
+				_thread.reset(nullptr);
+			}
+			catch (const std::system_error &) {
+				std::string str("_f8_threadcore::join called on a joined thread");
+				try {
+					_thread.reset(nullptr);
+				}
+				catch (const std::exception &e) {
+					str += ", delete had a further error: ";
+					str += e.what();
+				}
+				throw std::logic_error(str);
+			}
+		}
+
 		return 0;
 #endif
 	}
@@ -231,7 +249,7 @@ public:
 
 	/*! Get the current thread state
 	  \return thread state enumeration */
-	int thread_state() const { return _thread_state; }
+	ThreadState thread_state() const { return static_cast<ThreadState>(_thread_state.load()); }
 
 	/*! Set the thread state
 	  \param state state to set to */
