@@ -271,7 +271,7 @@ int FIXWriter::execute(f8_thread_cancellation_token& cancellation_token)
 	int result(0), processed(0), invalid(0);
 
 	while (!cancellation_token && !_session.is_shutdown())
-	{
+   {
 		try
 		{
 			Message *inmsg(0);
@@ -324,7 +324,6 @@ void Connection::stop()
 	scout_debug << "Connection::stop()";
 	_writer.stop();
 	_writer.join();
-
 	scout_debug << "Connection::stop() => _reader.stop()";
 	_reader.stop();
 	if (_reader.started()) {

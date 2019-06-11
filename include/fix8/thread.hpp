@@ -41,16 +41,17 @@ HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <atomic>
 #include <memory>
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
-#include <pthread.h>
-#include <signal.h>
+#include<pthread.h>
+#include<signal.h>
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-#include <thread>
-#include <mutex>
+#include<thread>
+#include<mutex>
 #endif
 
 //----------------------------------------------------------------------------------------
 namespace FIX8
 {
+
 template<typename T> using f8_atomic = std::atomic <T>;
 
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
@@ -96,6 +97,7 @@ protected:
 				std::string str("_f8_threadcore::_start: join called on a joined thread");
 				throw std::logic_error(std::move(str));
 			}
+		if (_thread) {
 			throw std::logic_error("_f8_threadcore::_start called on an active thread");
 		}
 #endif
@@ -119,7 +121,7 @@ public:
 	/// Dtor.
 	virtual ~_f8_threadcore()
 	{
-		join();
+	  join();
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		pthread_attr_destroy(&_attr);
 #endif
@@ -140,20 +142,9 @@ public:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return getid() != get_threadid() ? pthread_join(_tid, nullptr) ? -1 : 0 : -1; // prevent self-join
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		if (std::thread* thread_ptr = _thread_ptr.exchange(nullptr))
-		{
-			try
-			{
-				thread_ptr->join();
-				delete thread_ptr;
-			}
-			catch (const std::system_error &) {
-				std::string str("_f8_threadcore::join: join called on a joined thread");
-				throw std::logic_error(std::move(str));
-			}
-		}
-
-		return 0;
+	      if (_thread.get() && _thread->joinable() && getid() != get_threadid())
+			_thread->join();
+	      return 0;
 #endif
 	}
 
@@ -255,7 +246,7 @@ public:
 
 	/*! Get the current thread state
 	  \return thread state enumeration */
-	ThreadState thread_state() const { return static_cast<ThreadState>(_thread_state.load()); }
+	int thread_state() const { return _thread_state; }
 
 	/*! Set the thread state
 	  \param state state to set to */
