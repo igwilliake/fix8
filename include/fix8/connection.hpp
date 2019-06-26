@@ -135,7 +135,6 @@ class FIXReader : public AsyncSocket<f8String>
 {
 	enum { _max_msg_len = FIX8_MAX_MSG_LENGTH, _chksum_sz = 7 };
 	f8_atomic<bool> _socket_error;
-	f8_mutex _join_mutex;
 
 	f8_thread<FIXReader> _callback_thread;
 	f8_thread_cancellation_token _callback_cancellation_token;

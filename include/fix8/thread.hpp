@@ -103,6 +103,7 @@ public:
 		if (pthread_attr_init(&_attr))
 			throw f8_threadException("pthread_attr_init failure");
 #else
+		: _thread_ptr(nullptr)
 	{
 #endif
 	}
