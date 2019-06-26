@@ -67,7 +67,7 @@ class _f8_threadcore
 	pthread_attr_t _attr;
 	pthread_t _tid;
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-	std::unique_ptr<std::thread> _thread;
+	std::atomic<std::thread*> _thread_ptr;
 #endif
 
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
@@ -85,10 +85,11 @@ protected:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return pthread_create(&_tid, &_attr, _run<T>, sub);
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		if (_thread.get()) {
+		if (std::thread* thread_ptr = _thread_ptr.exchange(nullptr))
+		{
 			throw std::logic_error("_f8_threadcore::_start called on an active thread");
 		}
-		_thread.reset(new std::thread(_run<T>, sub));
+		_thread_ptr.store(new std::thread(_run<T>, sub));
 #endif
 		return 0;
 	}
@@ -130,21 +131,15 @@ public:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return getid() != get_threadid() ? pthread_join(_tid, nullptr) ? -1 : 0 : -1; // prevent self-join
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		if (_thread.get()) {
+		if (std::thread* thread_ptr = _thread_ptr.exchange(nullptr))
+		{
 			try {
-				_thread->join();
-				_thread.reset(nullptr);
+				thread_ptr->join();
+				delete thread_ptr;
 			}
 			catch (const std::system_error &) {
 				std::string str("_f8_threadcore::join called on a joined thread");
-				try {
-					_thread.reset(nullptr);
-				}
-				catch (const std::exception &e) {
-					str += ", delete had a further error: ";
-					str += e.what();
-				}
-				throw std::logic_error(str);
+				throw std::logic_error(std::move(str));
 			}
 		}
 
@@ -177,7 +172,8 @@ public:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return _tid;
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		return _thread.get() ? _thread->get_id() : std::thread::id();
+		std::thread* thread_ptr = _thread_ptr.load();
+		return thread_ptr ? thread_ptr->get_id() : std::thread::id();
 #endif
 	}
 
