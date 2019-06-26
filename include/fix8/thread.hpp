@@ -86,6 +86,9 @@ protected:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return pthread_create(&_tid, &_attr, _run<T>, sub);
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
+		if (_thread) {
+			throw std::logic_error("_f8_threadcore::_start called on an active thread");
+		}
 		_thread.reset(new std::thread(_run<T>, sub));
 #endif
 		return 0;
@@ -128,8 +131,12 @@ public:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return getid() != get_threadid() ? pthread_join(_tid, nullptr) ? -1 : 0 : -1; // prevent self-join
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-      if (_thread.get() && _thread->joinable() && getid() != get_threadid())
+		if (_thread)
+		{
 			_thread->join();
+			_thread.reset(nullptr);
+		}
+
 		return 0;
 #endif
 	}
