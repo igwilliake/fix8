@@ -233,7 +233,7 @@ int process_message_fields(const std::string& where, const XmlElement *xt, Field
 				FieldSpecMap::iterator fs_itr;
 				if (ftonItr == ftonSpec.end() || (fs_itr = fspec.find(ftonItr->second)) == fspec.end())
 				{
-					cerr << shortName << ':' << recover_line(*pp) << ": error: Field element missing required attributes" << endl;
+					cerr << shortName << ':' << recover_line(*pp) << ": error: Field named: " << fname << " missing required attributes" << endl;
 					++glob_errors;
 					continue;
 				}
@@ -257,7 +257,7 @@ int process_message_fields(const std::string& where, const XmlElement *xt, Field
 			}
 			else
 			{
-				cerr << shortName << ':' << recover_line(*pp) << ": error: Field element missing required attributes" << endl;
+				cerr << shortName << ':' << recover_line(*pp) << ": error: Field named: " << fname << " missing required attributes" << endl;
 				++glob_errors;
 			}
 		}
