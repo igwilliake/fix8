@@ -68,7 +68,7 @@ class _f8_threadcore
 	pthread_attr_t _attr;
 	pthread_t _tid;
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-	std::unique_ptr<std::thread> _thread;
+	std::atomic<std::thread*> _thread_ptr;
 #endif
 
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
@@ -86,10 +86,19 @@ protected:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return pthread_create(&_tid, &_attr, _run<T>, sub);
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		if (_thread) {
+		if (std::thread* thread_ptr = _thread_ptr.exchange(new std::thread(_run<T>, sub)))
+		{
+			try
+			{
+				thread_ptr->join();
+				delete thread_ptr;
+			}
+			catch (const std::system_error &) {
+				std::string str("_f8_threadcore::_start: join called on a joined thread");
+				throw std::logic_error(std::move(str));
+			}
 			throw std::logic_error("_f8_threadcore::_start called on an active thread");
 		}
-		_thread.reset(new std::thread(_run<T>, sub));
 #endif
 		return 0;
 	}
@@ -103,6 +112,7 @@ public:
 		if (pthread_attr_init(&_attr))
 			throw f8_threadException("pthread_attr_init failure");
 #else
+		: _thread_ptr(nullptr)
 	{
 #endif
 	}
@@ -131,10 +141,17 @@ public:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return getid() != get_threadid() ? pthread_join(_tid, nullptr) ? -1 : 0 : -1; // prevent self-join
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		if (_thread)
+		if (std::thread* thread_ptr = _thread_ptr.exchange(nullptr))
 		{
-			_thread->join();
-			_thread.reset(nullptr);
+			try
+			{
+				thread_ptr->join();
+				delete thread_ptr;
+			}
+			catch (const std::system_error &) {
+				std::string str("_f8_threadcore::join: join called on a joined thread");
+				throw std::logic_error(std::move(str));
+			}
 		}
 
 		return 0;
@@ -166,7 +183,8 @@ public:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return _tid;
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		return _thread.get() ? _thread->get_id() : std::thread::id();
+		std::thread* thread_ptr = _thread_ptr.load();
+		return thread_ptr ? thread_ptr->get_id() : std::thread::id();
 #endif
 	}
 
