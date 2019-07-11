@@ -4,7 +4,7 @@
 Fix8 is released under the GNU LESSER GENERAL PUBLIC LICENSE Version 3.
 
 Fix8 Open Source FIX Engine.
-Copyright (C) 2010-15 David L. Dight <fix@fix8.org>
+Copyright (C) 2010-19 David L. Dight <fix@fix8.org>
 
 Fix8 is free software: you can  redistribute it and / or modify  it under the  terms of the
 GNU Lesser General  Public License as  published  by the Free  Software Foundation,  either
@@ -171,7 +171,6 @@ struct MessageSpec
 	    \return stream */
 	friend std::ostream& operator<<(std::ostream& os, const MessageSpec& what);
 };
-std::ostream& operator<<(std::ostream& os, const MessageSpec& what);
 
 using MessageSpecMap = std::map<const std::string, MessageSpec>;
 using FieldTraitOrder = std::multiset<const FieldTrait *, FieldTrait::PosCompare>;

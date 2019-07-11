@@ -268,7 +268,7 @@ int FIXWriter::execute(f8_thread_cancellation_token& cancellation_token)
 	int result(0), processed(0), invalid(0);
 
 	while (!cancellation_token && !_session.is_shutdown())
-	{
+   {
 		try
 		{
 			Message *inmsg(0);
@@ -316,7 +316,7 @@ void Connection::stop()
 {
 	scout_debug << "Connection::stop()";
 	try {
-		_reader.socket()->shutdownReceive();
+		_reader.socket()->shutdown();
 	} catch(const Poco::Net::NetException& ex) {
 		scout_warn << "Connection::stop() msg:" << ex.displayText();
 		_session.do_state_change(States::st_session_terminated);

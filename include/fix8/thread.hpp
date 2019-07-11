@@ -41,16 +41,17 @@ HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 #include <atomic>
 #include <memory>
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
-#include <pthread.h>
-#include <signal.h>
+#include<pthread.h>
+#include<signal.h>
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-#include <thread>
-#include <mutex>
+#include<thread>
+#include<mutex>
 #endif
 
 //----------------------------------------------------------------------------------------
 namespace FIX8
 {
+
 template<typename T> using f8_atomic = std::atomic <T>;
 
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
@@ -119,7 +120,7 @@ public:
 	/// Dtor.
 	virtual ~_f8_threadcore()
 	{
-		join();
+	  join();
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		pthread_attr_destroy(&_attr);
 #endif
@@ -255,7 +256,7 @@ public:
 
 	/*! Get the current thread state
 	  \return thread state enumeration */
-	ThreadState thread_state() const { return static_cast<ThreadState>(_thread_state.load()); }
+	int thread_state() const { return _thread_state; }
 
 	/*! Set the thread state
 	  \param state state to set to */

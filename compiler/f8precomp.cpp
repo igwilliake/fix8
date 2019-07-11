@@ -4,7 +4,7 @@
 Fix8 is released under the GNU LESSER GENERAL PUBLIC LICENSE Version 3.
 
 Fix8 Open Source FIX Engine.
-Copyright (C) 2010-15 David L. Dight <fix@fix8.org>
+Copyright (C) 2010-19 David L. Dight <fix@fix8.org>
 
 Fix8 is free software: you can  redistribute it and / or modify  it under the  terms of the
 GNU Lesser General  Public License as  published  by the Free  Software Foundation,  either
@@ -159,12 +159,38 @@ int precompfixt(XmlElement& xft, XmlElement& xf, ostream& outf, bool nounique)
 	return 0;
 }
 
+void assertNoDuplicatesWithDifferentNamesButSameId(XmlElement::XmlSet& fldlist) {
+	//ig addition: find out whether there is duplicated name that has different number
+	for(auto outerIt = fldlist.begin(); outerIt != fldlist.end(); ++outerIt) {
+		auto &a = *outerIt;
+		std::string numA, nameA;
+		a->GetAttr("number", numA);
+		a->GetAttr("name", nameA);
+		for(auto innerIt = fldlist.begin(); innerIt != outerIt; ++innerIt) {
+
+			auto &b = *innerIt;
+			std::string numB, nameB;
+
+			b->GetAttr("number", numB);
+			b->GetAttr("name", nameB);
+
+			if(numA == numB && nameA != nameB) {
+				printf("found duplicated numbers: %s(%s) and %s(%s)", nameA.c_str(), numA.c_str(), nameB.c_str(), numB.c_str());
+				std::abort();
+			}
+		}
+	}
+}
+
 //-----------------------------------------------------------------------------------------
 void filter_unique(XmlElement::XmlSet& fldlist)
 {
+	assertNoDuplicatesWithDifferentNamesButSameId(fldlist);
+
 	using UniqueFieldMap = map<string, const XmlElement *>;
 	UniqueFieldMap ufm;
 	unsigned dupls(0);
+
 	for(const auto *pp : fldlist)
 	{
 		string name;

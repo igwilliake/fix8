@@ -4,7 +4,7 @@
 Fix8 is released under the GNU LESSER GENERAL PUBLIC LICENSE Version 3.
 
 Fix8 Open Source FIX Engine.
-Copyright (C) 2010-15 David L. Dight <fix@fix8.org>
+Copyright (C) 2010-19 David L. Dight <fix@fix8.org>
 
 Fix8 is free software: you can  redistribute it and / or modify  it under the  terms of the
 GNU Lesser General  Public License as  published  by the Free  Software Foundation,  either
@@ -85,6 +85,8 @@ e.g.\n
 #include <getopt.h>
 #endif
 
+#include <cstdlib>
+
 //-----------------------------------------------------------------------------------------
 using namespace std;
 using namespace FIX8;
@@ -96,10 +98,10 @@ const string Ctxt::_exts[count] { "_types.c", "_types.h", "_traits.c", "_classes
 string precompFile, spacer, inputFile, precompHdr, shortName, fixt, shortNameFixt, odir("./"),
        prefix("Myfix"), gen_classes, extra_fields;
 bool verbose(false), error_ignore(false), gen_fields(false), norealm(false), nocheck(false), nowarn(false),
-     incpath(true), nconst_router(false), no_shared_groups(false), no_default_routers(false);
+     incpath(true), nconst_router(false), no_shared_groups(false), no_default_routers(false), report_unused(false);
 unsigned glob_errors(0), glob_warnings(0), tabsize(3), ext_ver(0);
 extern unsigned glob_errors;
-extern const string GETARGLIST("hvVo:p:dikn:rst:x:NRc:fbCIWPF:UeH:SD");
+extern const string GETARGLIST("hvVo:p:dikn:rst:x:NRc:fbCIWPF:UeH:SDu");
 extern string spacer, shortName, precompHdr;
 
 //-----------------------------------------------------------------------------------------
@@ -167,6 +169,7 @@ int main(int argc, char **argv)
 		{ "nocheck",		0,	0,	'C' },
 		{ "noconst",		0,	0,	'U' },
 		{ "info",		   0,	0,	'I' },
+		{ "unused",		   0,	0,	'u' },
 		{ "fields",			0,	0,	'f' },
 		{ "xfields",		1,	0,	'F' },
 		{ "keep",			0,	0,	'k' },
@@ -204,6 +207,7 @@ int main(int argc, char **argv)
 		case 'R': norealm = true; break;
 		case 'C': nocheck = true; break;
 		case 'U': nconst_router = true; break;
+		case 'u': report_unused = true; break;
 		case 'c': gen_classes = optarg; break;
 		case 'F': extra_fields = optarg; break;
 		case 'h': print_usage(); return 0;
@@ -328,6 +332,12 @@ int main(int argc, char **argv)
 
 	if (load_fix_version (*cfr, ctxt) < 0)
 		return 1;
+   if (ctxt._beginstr.compare(0, 4, "FIX.") == 0 && ctxt._version >= 5000)
+   {
+      cerr << "Error: " << ctxt._beginstr << " requires an additional FIXT schema specification." << endl;
+      return 1;
+   }
+
 	for (unsigned ii(0); ii < Ctxt::count; ++ii)
 	{
 		ctxt._out[ii].first.second = prefix + ctxt._exts[ii] + ctxt._exts_ver[ext_ver];
@@ -434,8 +444,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (glob_errors)
+	if (glob_errors) {
 		cerr << glob_errors << " error" << (glob_errors == 1 ? "." : "s.") << endl;
+		exit(1);
+	}
 	if (glob_warnings)
 		cerr << glob_warnings << " warning" << (glob_warnings == 1 ? "." : "s.") << endl;
 	return result;
@@ -466,11 +478,21 @@ int load_fields(XmlElement& xf, FieldSpecMap& fspec)
 			FieldTrait::FieldType ft(bmitr == FieldSpec::_baseTypeMap.end() ? FieldTrait::ft_untyped : bmitr->second);
 			pair<FieldSpecMap::iterator, bool> result;
 			if (ft != FieldTrait::ft_untyped)
-				result = fspec.insert({stoul(number), FieldSpec(name, ft)});
-			else
-			{
-            if (!nowarn)
-               cerr << shortName << ':' << recover_line(*pp) << ": warning: Unknown field type: " << type << " in " << name << endl;
+         {
+				try
+            {
+					result = fspec.insert({stoul(number), FieldSpec(name, ft)});
+				}
+            catch (exception& e)
+            {
+					cerr << shortName << ':' << recover_line(*pp) << ": error: Failed to convert (stoul) number " << number << " in " << name << endl;
+					++glob_errors;
+				}
+			}
+         else
+         {
+				if (!nowarn)
+					cerr << shortName << ':' << recover_line(*pp) << ": warning: Unknown field type: " << type << " in " << name << endl;
 				++glob_warnings;
 				continue;
 			}
@@ -1412,12 +1434,16 @@ int process(XmlElement& xf, Ctxt& ctxt)
 	ost_cpp << "extern const " << ctxt._clname << "_BaseEntry::Pair fldpairs[];" << endl;
 	ost_cpp << "const " << ctxt._clname << "_BaseEntry::Pair fldpairs[] "
       << endl << '{' << endl;
+   FieldSpecMap::const_iterator fromfitr(fspec.begin());
 	for (FieldSpecMap::const_iterator fitr(fspec.begin()); fitr != fspec.end(); ++fitr)
 	{
 		if (!gen_fields && !fitr->second._used)
-			continue;
-		if (fitr != fspec.begin())
-			ost_cpp << ',' << endl;
+      {
+         ++fromfitr;
+         continue;
+      }
+      if (fitr != fromfitr)
+         ost_cpp << ',' << endl;
 		ost_cpp << spacer << "{ " << fitr->first << ", { ";
 		if (fitr->second._dvals && !norealm) // generate code to create a Field using a value taken from an index into a Realm
 		{
@@ -1457,10 +1483,22 @@ int process(XmlElement& xf, Ctxt& ctxt)
 
 	if (verbose)
 	{
-		unsigned cnt(0);
+		unsigned cnt(0), ucnt(0);
 		for (const auto& pp : fspec)
+      {
 			if (pp.second._used)
 				++cnt;
+         else if (report_unused)
+         {
+            if (ucnt++)
+               cout << ',';
+            else
+               cout << "Unused fields: ";
+            cout << pp.second._name << '(' << pp.first << ')';
+         }
+      }
+      if (report_unused && ucnt)
+         cout << endl;
 		cout << cnt << " of " << fspec.size() << " fields used in messages" << endl;
 	}
 
