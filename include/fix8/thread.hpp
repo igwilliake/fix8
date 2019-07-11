@@ -68,7 +68,7 @@ class _f8_threadcore
 	pthread_attr_t _attr;
 	pthread_t _tid;
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-	std::atomic<std::thread*> _thread_ptr;
+	std::atomic<std::thread*> _thread_ptr(nullptr);
 #endif
 
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
