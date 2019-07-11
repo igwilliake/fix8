@@ -85,11 +85,19 @@ protected:
 #if (FIX8_THREAD_SYSTEM == FIX8_THREAD_PTHREAD)
 		return pthread_create(&_tid, &_attr, _run<T>, sub);
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
-		if (std::thread* thread_ptr = _thread_ptr.exchange(nullptr))
+		if (std::thread* thread_ptr = _thread_ptr.exchange(new std::thread(_run<T>, sub)))
 		{
+			try
+			{
+				thread_ptr->join();
+				delete thread_ptr;
+			}
+			catch (const std::system_error &) {
+				std::string str("_f8_threadcore::_start: join called on a joined thread");
+				throw std::logic_error(std::move(str));
+			}
 			throw std::logic_error("_f8_threadcore::_start called on an active thread");
 		}
-		_thread_ptr.store(new std::thread(_run<T>, sub));
 #endif
 		return 0;
 	}
@@ -134,12 +142,13 @@ public:
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
 		if (std::thread* thread_ptr = _thread_ptr.exchange(nullptr))
 		{
-			try {
+			try
+			{
 				thread_ptr->join();
 				delete thread_ptr;
 			}
 			catch (const std::system_error &) {
-				std::string str("_f8_threadcore::join called on a joined thread");
+				std::string str("_f8_threadcore::join: join called on a joined thread");
 				throw std::logic_error(std::move(str));
 			}
 		}
