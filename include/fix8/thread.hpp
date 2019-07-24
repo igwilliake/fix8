@@ -83,8 +83,6 @@ class _f8_threadcore
 	{
 		if (thread_ptr)
 		{
-			if (thread_ptr->get_id() == std::thread::id())
-				return -2;	// possibly already joined
 			if (thread_ptr->get_id() == std::this_thread::get_id())
 				return -1;	// join on self
 			try
@@ -111,7 +109,7 @@ protected:
 #elif (FIX8_THREAD_SYSTEM == FIX8_THREAD_STDTHREAD)
 		if (std::thread* thread_ptr = _thread_ptr.exchange(new std::thread(_run<T>, sub)))
 		{
-			return _join(thread_ptr);
+			std::terminate();
 		}
 #endif
 		return 0;
