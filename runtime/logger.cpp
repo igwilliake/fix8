@@ -313,9 +313,7 @@ bool FileLogger::rotate(bool force)
 
 void FileLogger::process_logline(LogElement *msg_ptr)
 {
-	{
-		f8_scoped_lock guard(_rotsize_mutex);
-		if (_ofs && get_rotate_size() < _ofs->tellp())
+	if (get_rotate_size() < get_current_file_size()) {
 			rotate(true);
 	}
 
@@ -390,10 +388,8 @@ BCLogger::BCLogger(const string& ip, const unsigned port, const LogFlags flags, 
 //-------------------------------------------------------------------------------------------------
 void XmlFileLogger::process_logline(LogElement *msg_ptr)
 {
-	{
-		f8_scoped_lock guard(_rotsize_mutex);
-		if (_ofs && get_rotate_size() < _ofs->tellp())
-			rotate(true);
+	if (get_rotate_size() < get_current_file_size()) {
+		rotate(true);
 	}
 
 	f8String spacer(3, ' ');
