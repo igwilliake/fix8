@@ -1157,6 +1157,11 @@ public:
 	/* \param from field to copy */
 	Field (const Field& from) : BaseField(field), _value(from._value) {}
 
+	/*! Value ctor.
+	  \param val value to set
+	  \param rlm pointer to the realmbase for this field (if available) */
+	explicit Field (const Tickval& val, const RealmBase *rlm=nullptr) : BaseField(field, rlm), _value(val) {}
+
 	/*! Construct from string ctor.
 	  \param from string to construct field from
 	  \param rlm pointer to the realmbase for this field (if available) */
@@ -1259,6 +1264,11 @@ public:
 	/// Copy Ctor.
 	/* \param from field to copy */
 	Field (const Field& from) : BaseField(field), _value(from._value) {}
+
+	/*! Value ctor.
+	  \param val value to set
+	  \param rlm pointer to the realmbase for this field (if available) */
+	explicit Field (const Tickval& val, const RealmBase *rlm=nullptr) : BaseField(field, rlm), _value(val) {}
 
 	/*! Construct from string ctor.
 	  \param from string to construct field from
@@ -1363,6 +1373,11 @@ public:
 	/* \param from field to copy */
 	Field (const Field& from) : BaseField(field), _value(from._value) {}
 
+	/*! Value ctor.
+	  \param val value to set
+	  \param rlm pointer to the realmbase for this field (if available) */
+	explicit Field (const Tickval& val, const RealmBase *rlm=nullptr) : BaseField(field, rlm), _value(val) {}
+
 	/*! Construct from string ctor.
 	  \param from string to construct field from
 	  \param rlm pointer to the realmbase for this field (if available) */
@@ -1466,6 +1481,11 @@ public:
 	/// Copy Ctor.
 	/* \param from field to copy */
 	Field (const Field& from) : BaseField(field), _sz(from._sz), _value(from._value) {}
+
+	/*! Value ctor.
+	  \param val value to set
+	  \param rlm pointer to the realmbase for this field (if available) */
+	explicit Field (const Tickval& val, const RealmBase *rlm=nullptr) : BaseField(field, rlm), _sz(6), _value(val) {}
 
 	/*! Construct from string ctor.
 	  \param from string to construct field from
