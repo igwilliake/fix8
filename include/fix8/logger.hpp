@@ -178,7 +178,7 @@ public:
 	using LogPositions = std::vector<int>;
 
 protected:
-	f8_mutex _mutex;
+	mutable f8_mutex _mutex;
 	f8_spin_lock _log_spl;
 	LogFlags _flags;
 	Levels _levels;
@@ -358,10 +358,13 @@ public:
 /// A file logger.
 class FileLogger : public Logger
 {
+public:
+	typedef std::streamoff streamoff_type;
+
 protected:
 	std::string _pathname;
 	unsigned _rotnum;
-
+	streamoff_type _rotsize;
 public:
 	/*! Ctor.
 	    \param pathname pathname to log to
@@ -371,7 +374,8 @@ public:
 	    \param positions field positions
 	    \param rotnum number of logfile rotations to retain (default=5) */
 	F8API FileLogger(const std::string& pathname, const LogFlags flags, const Levels levels, const std::string delim=" ",
-		const LogPositions positions=LogPositions(), const unsigned rotnum=rotation_default);
+		const LogPositions positions=LogPositions(), const unsigned rotnum=rotation_default,
+		streamoff_type rotsize=std::numeric_limits<streamoff_type>::max());
 
 	/// Dtor.
 	virtual ~FileLogger() {}
@@ -380,13 +384,23 @@ public:
 	    \param force force the rotation (even if the file is set ti append)
 	    \return true on success */
 	F8API virtual bool rotate(bool force=false);
+
+	/*! Process this logelement
+	    \param le LogElement */
+	F8API virtual void process_logline(LogElement *le);
+
+	/// Return rotate size threshold
+	streamoff_type get_rotate_size() const { return _rotsize; }
+
+	/// Return current file size
+	/// note that by the time you read the value returned by this function real size might have already changed.
+	streamoff_type get_current_file_size() const;
 };
 
 //-------------------------------------------------------------------------------------------------
 /// A file logger.
 class XmlFileLogger : public FileLogger
 {
-
 public:
 	/*! Ctor.
 	    \param pathname pathname to log to
@@ -396,8 +410,9 @@ public:
 	    \param positions field positions
 	    \param rotnum number of logfile rotations to retain (default=5) */
 	F8API XmlFileLogger(const std::string& pathname, const LogFlags flags, const Levels levels, const std::string delim=" ",
-		const LogPositions positions=LogPositions(), const unsigned rotnum=rotation_default)
-		: FileLogger(pathname, flags, levels, delim, positions, rotnum)
+		const LogPositions positions=LogPositions(), const unsigned rotnum=rotation_default,
+		streamoff_type rotsize=std::numeric_limits<streamoff_type>::max())
+		: FileLogger(pathname, flags, levels, delim, positions, rotnum, rotsize)
 	{
 		preamble();
 	}

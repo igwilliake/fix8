@@ -85,6 +85,8 @@ e.g.\n
 #include <getopt.h>
 #endif
 
+#include <cstdlib>
+
 //-----------------------------------------------------------------------------------------
 using namespace std;
 using namespace FIX8;
@@ -442,8 +444,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (glob_errors)
+	if (glob_errors) {
 		cerr << glob_errors << " error" << (glob_errors == 1 ? "." : "s.") << endl;
+		exit(1);
+	}
 	if (glob_warnings)
 		cerr << glob_warnings << " warning" << (glob_warnings == 1 ? "." : "s.") << endl;
 	return result;

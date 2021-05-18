@@ -137,6 +137,11 @@ bool exec_cmd(const string& cmd, string& result)
    return !result.empty();
 }
 
+int generateNextNodeSequence() {
+    static std::atomic_int sequence{};
+    return ++sequence;
+}
+
 }
 
 //-----------------------------------------------------------------------------------------
@@ -144,7 +149,7 @@ bool exec_cmd(const string& cmd, string& result)
 //-----------------------------------------------------------------------------------------
 XmlElement::XmlElement(istream& ifs, int subidx, XmlElement *parent, int txtline, int depth, const char *rootAttr)
 	: parent_(parent), root_(parent_ ? parent_->root_ : this), errors_(), line_(1), incline_(1), maxdepth_(),
-	seq_(), value_(), decl_(), depth_(depth), sequence_(++root_->seq_), txtline_(txtline),
+	seq_(), value_(), decl_(), depth_(depth), sequence_(generateNextNodeSequence()), txtline_(txtline),
 	chldcnt_(), subidx_(subidx), attrs_(), children_(), _was_include(), ordchildren_()
 {
 	istream *ifsptr(&ifs);

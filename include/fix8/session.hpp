@@ -192,6 +192,7 @@ namespace defaults
 		hb_interval=30,
 		connect_timeout=10,
 		log_rotation=5,
+		log_rotate_size=std::numeric_limits<std::streamoff>::max(),
 		verification_depth=9
 	};
 }
@@ -382,6 +383,14 @@ struct Session_Schedule
 		os << what._sch << " reject_reason:" << what._reject_reason << " reject_text:" << what._reject_text;
 		return os;
 	}
+};
+
+struct Header {
+	const char* version;
+	const char* sender;
+	const char* target;
+	const char* sending_time;
+	unsigned seqno;
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -643,6 +652,10 @@ public:
 	    \return size_t number of messages sent - if destroy was true those sent messages will have been destroyed
 	 			with the reamining messages in the vector still allocated */
 	F8API virtual size_t send_batch(const std::vector<Message *>& msgs, bool destroy=true);
+
+	F8API bool send_raw(const std::function<std::size_t(const Header&)>& encode, char* buffer);
+
+	F8API bool send_raw_process(const std::function<std::size_t(const Header&)>&, const char*);
 
 	/*! Process message (encode) and send.
 	    \param msg Message
