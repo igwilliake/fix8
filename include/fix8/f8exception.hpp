@@ -309,6 +309,12 @@ struct XMLError : f8Exception
 	XMLError(const std::string& str) { format("XML parsing error", str); }
 };
 
+/// Encoded message doesn't fit into provided buffer
+struct EncodedMessageExceededBuffer : f8Exception
+{
+	EncodedMessageExceededBuffer(unsigned length) { format("Encoded Message doesn't fit into our buffer of size", length); }
+};
+
 //-------------------------------------------------------------------------------------------------
 
 } // FIX8

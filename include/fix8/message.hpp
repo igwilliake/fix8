@@ -479,8 +479,9 @@ public:
 
 	/*! Encode message to buffer.
 	    \param to buffer to encode to
+	    \param endOfSafeEncode pointer to place in first buffer, where appending next field might cause buffer overflow
 	    \return number of bytes encoded */
-	F8API size_t encode(char *to) const;
+	F8API size_t encode(char *to, const char* endOfSafeEncode) const;
 
 	/*! Encode group message to stream.
 	    \param fnum repeating group fix field num (no...)
@@ -491,8 +492,9 @@ public:
 	/*! Encode group message to buffer.
 	    \param fnum repeating group fix field num (no...)
 	    \param to buffer to encode to
+	    \param endOfSafeEncode pointer to first place in buffer, where appending next field might cause buffer overflow
 	    \return number of bytes encoded */
-	F8API size_t encode_group(const unsigned short fnum, char *to) const;
+	F8API size_t encode_group(const unsigned short fnum, char *to, const char* endOfSafeEncode) const;
 
 	/*! Instantiate a new nested group element.
 	    \param fnum field number of group to create
@@ -1129,8 +1131,9 @@ public:
 
 	/*! Encode message to stream. Perform absolutely minimal copying of output buffer.
 	    \param to pointer to pointer to buffer
+	    \param endOfSafeEncode pointer to first place in buffer, where appending next field might cause buffer overflow
 	    \return number of bytes encoded; to ptr is updated with address of start of encoded message string */
-	F8API size_t encode(char **to) const;
+	F8API size_t encode(char **to, const char* endOfSafeEncode) const;
 
 	/*! Clone this message. Performs a deep copy.
 	    \return pointer to copy of this message */

@@ -1,3 +1,4 @@
+
 //-----------------------------------------------------------------------------------------
 /*
 
@@ -348,7 +349,7 @@ unsigned MessageBase::move_legal(MessageBase *to, bool force)
 }
 
 //-------------------------------------------------------------------------------------------------
-size_t MessageBase::encode(char *to) const
+size_t MessageBase::encode(char *to, const char* endOfSafeEncode) const
 {
 	const char *where(to);
 	for (const auto& pp : _pos)
@@ -359,14 +360,21 @@ size_t MessageBase::encode(char *to) const
 		Presence::const_iterator fpitr(_fp.get_presence().end());
 		if (!_fp.get(pp.second->_fnum, fpitr, FieldTrait::suppress))	// some fields are not encoded until unsuppressed (eg. checksum)
 		{
+			if (to > endOfSafeEncode) {
+				throw EncodedMessageExceededBuffer(FIX8_MAX_MSG_LENGTH + HEADER_CALC_OFFSET);
+			}
 			to += pp.second->encode(to);
 			if (fpitr->_field_traits.has(FieldTrait::group) && has_group_count(pp.second))
-				to += encode_group(pp.second->_fnum, to);
+				to += encode_group(pp.second->_fnum, to, endOfSafeEncode);
 		}
 	}
 
-	if (_unknown.size())
+	if (_unknown.size()) {
+		if (to + _unknown.size() > endOfSafeEncode) {
+		    throw EncodedMessageExceededBuffer(FIX8_MAX_MSG_LENGTH + HEADER_CALC_OFFSET);
+		}
 		to += _unknown.copy(to, _unknown.size());
+	}
 
 	return to - where;
 }
@@ -396,14 +404,18 @@ size_t MessageBase::encode(ostream& to) const
 }
 
 //-------------------------------------------------------------------------------------------------
-size_t MessageBase::encode_group(const unsigned short fnum, char *to) const
+size_t MessageBase::encode_group(const unsigned short fnum, char *to, const char *endOfSafeEncode) const
 {
 	const char *where(to);
 	GroupBase *grpbase(find_group(fnum));
 	if (!grpbase)
 		throw InvalidRepeatingGroup(fnum, FILE_LINE);
-	for (const auto *pp : grpbase->_msgs)
-		to += pp->encode(to);
+	for (const auto *pp : grpbase->_msgs) {
+		if (to  > endOfSafeEncode) {
+		  throw EncodedMessageExceededBuffer(FIX8_MAX_MSG_LENGTH + HEADER_CALC_OFFSET);
+		}
+		to += pp->encode(to, endOfSafeEncode);
+	}
 	return to - where;
 }
 
@@ -421,7 +433,7 @@ size_t MessageBase::encode_group(const unsigned short fnum, std::ostream& to) co
 
 //-------------------------------------------------------------------------------------------------
 /// Encode message with minimal copying
-size_t Message::encode(char **hmsg_store) const
+size_t Message::encode(char **hmsg_store, const char* endOfSafeEncode) const
 {
 	char *moffs(*hmsg_store + HEADER_CALC_OFFSET), *msg(moffs);
 
@@ -434,7 +446,7 @@ size_t Message::encode(char **hmsg_store) const
 	_header->get_msg_type()->set(_msgType);
 
 #if defined FIX8_RAW_MSG_SUPPORT
-	msg += (_begin_payload = _header->encode(msg)); // start
+	msg += (_begin_payload = _header->encode(msg, endOfSafeEncode)); // start
 #if defined FIX8_PREENCODE_MSG_SUPPORT
 	if (_preencode_len)
 	{
@@ -443,9 +455,9 @@ size_t Message::encode(char **hmsg_store) const
 	}
 	else
 #endif
-		msg += (_payload_len = MessageBase::encode(msg));
+		msg += (_payload_len = MessageBase::encode(msg, endOfSafeEncode));
 #else
-	msg += _header->encode(msg); // start
+	msg += _header->encode(msg, endOfSafeEncode); // start
 #if defined FIX8_PREENCODE_MSG_SUPPORT
 	if (_preencode_len)
 	{
@@ -454,12 +466,12 @@ size_t Message::encode(char **hmsg_store) const
 	}
 	else
 #endif
-		msg += MessageBase::encode(msg);
+		msg += MessageBase::encode(msg, endOfSafeEncode);
 #endif
 
 	if (!_trailer)
 		throw MissingMessageComponent("trailer");
-	msg += _trailer->encode(msg);
+	msg += _trailer->encode(msg, endOfSafeEncode);
 	const size_t msgLen(msg - moffs); // checksummable msglength
 	const size_t hlen(_ctx._preamble_sz +
 		(msgLen < 10 ? 1 : msgLen < 100 ? 2 : msgLen < 1000 ? 3 : msgLen < 10000 ? 4 :
@@ -501,7 +513,12 @@ size_t Message::encode(char **hmsg_store) const
 size_t Message::encode(f8String& to) const
 {
 	char output[FIX8_MAX_MSG_LENGTH + HEADER_CALC_OFFSET], *ptr(output);
-	const size_t msgLen(encode(&ptr));
+        // Calling encode after buffer reached this address is no longer safe (field may overflow the buffer)
+        // We don't know what amount of space encode of single field might take, so we assume that
+	//  * tag and separators will take up to MAX_MSGTYPE_FIELD_LEN
+	//  * value will take up to FIX8_MAX_FLD_LENGTH
+	const char* endOfSafeEncode = output + (FIX8_MAX_MSG_LENGTH + HEADER_CALC_OFFSET) - (FIX8_MAX_FLD_LENGTH + MAX_MSGTYPE_FIELD_LEN);
+	const size_t msgLen(encode(&ptr, endOfSafeEncode));
 	to.assign(ptr, msgLen);
 	return to.size();
 }

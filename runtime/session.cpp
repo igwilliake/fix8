@@ -1112,7 +1112,12 @@ bool Session::send_process(Message *msg) // called from the connection (possibly
 		slout_debug << "Sending:" << *msg;
 		modify_outbound(msg);
 		char output[FIX8_MAX_MSG_LENGTH + HEADER_CALC_OFFSET], *ptr(output);
-		size_t enclen(msg->encode(&ptr));
+                // Calling encode after buffer reached this address is no longer safe (field may overflow the buffer)
+		// We don't know what amount of space encode of single field might take, so we assume that
+	        //  * tag and separators will take up to MAX_MSGTYPE_FIELD_LEN
+	        //  * value will take up to FIX8_MAX_FLD_LENGTH
+	        const char* endOfSafeEncode = output + (FIX8_MAX_MSG_LENGTH + HEADER_CALC_OFFSET) - (FIX8_MAX_FLD_LENGTH + MAX_MSGTYPE_FIELD_LEN);
+		size_t enclen(msg->encode(&ptr, endOfSafeEncode));
 		const char *optr(ptr);
 		if (msg->get_end_of_batch())
 		{
