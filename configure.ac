@@ -348,10 +348,8 @@ AC_ARG_WITH([mpmc],
 [case "${withval}" in
 	tbb) AC_MSG_CHECKING(for TBB)
 				AC_TRY_COMPILE([
-					#include <tbb/atomic.h>
-					#include <tbb/mutex.h>
 					#include <tbb/concurrent_queue.h>
-					],,
+					],[tbb::concurrent_bounded_queue<int> q;],
 					have_tbb=yes, have_tbb=no)
 				if test "$have_tbb" = yes; then
 					 AC_MSG_RESULT(yes)

@@ -21022,14 +21022,12 @@ $as_echo_n "checking for TBB... " >&6; }
 				cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-					#include <tbb/atomic.h>
-					#include <tbb/mutex.h>
 					#include <tbb/concurrent_queue.h>
 
 int
 main ()
 {
-
+tbb::concurrent_bounded_queue<int> q;
   ;
   return 0;
 }
