@@ -755,6 +755,17 @@ AC_ARG_ENABLE([debug],
 	*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
 esac])
 
+dnl Poco appends 'd' and TBB appends '_debug' to their debug-built libraries
+dnl (same convention on Linux, FreeBSD, macOS). Select the matching suffixes
+dnl from --enable-debug so a single tree links debug or release dependencies
+dnl without hardcoding either set of names in the Makefiles.
+AM_CONDITIONAL([DEBUG], [test "x$enable_debug" = "xyes"])
+AS_IF([test "x$enable_debug" = "xyes"],
+      [POCO_LIBSUFFIX=d; TBB_LIBSUFFIX=_debug],
+      [POCO_LIBSUFFIX=; TBB_LIBSUFFIX=])
+AC_SUBST([POCO_LIBSUFFIX])
+AC_SUBST([TBB_LIBSUFFIX])
+
 AC_ARG_ENABLE([ssl],
 [AS_HELP_STRING([--enable-ssl],[enable SSL support (through OpenSSL, default=no)])],
 [case "${enableval}" in

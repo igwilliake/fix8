@@ -56,13 +56,13 @@ libfix8_la_LDFLAGS += -lz
 if USECCRYPT
 libfix8_la_LDFLAGS += -lcrypt
 endif
-POCO_LIBS = -lPocoFoundation -lPocoNet -lPocoUtil
+POCO_LIBS = -lPocoFoundation$(POCO_LIBSUFFIX) -lPocoNet$(POCO_LIBSUFFIX) -lPocoUtil$(POCO_LIBSUFFIX)
 if USESSL
-POCO_LIBS += -lPocoNetSSL -lPocoCrypto -lPocoXML
+POCO_LIBS += -lPocoNetSSL$(POCO_LIBSUFFIX) -lPocoCrypto$(POCO_LIBSUFFIX) -lPocoXML$(POCO_LIBSUFFIX)
 endif
 libfix8_la_LDFLAGS += $(POCO_LIBS)
 if TBBSUPPORT
-libfix8_la_LDFLAGS += -ltbb
+libfix8_la_LDFLAGS += -ltbb$(TBB_LIBSUFFIX)
 endif
 
 if LIBMEMCACHEDSUPPORT

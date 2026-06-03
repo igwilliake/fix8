@@ -101,6 +101,7 @@ INSTALL_DATA_LOCAL_SCHEMA = schema/*.xml schema/QUICKFIX-LICENCE
 install-data-local:
 	@$(mkinstalldirs) $(DESTDIR)$(ffdir)/d $(DESTDIR)$(ffdir)/platforms $(DESTDIR)$(ffdir)/atomic $(DESTDIR)$(ffdir)/ocl
 	@$(mkinstalldirs) $(DESTDIR)$(fix8mandir) $(DESTDIR)$(contribdir) $(DESTDIR)$(exchangecontribdir)
+	@$(mkinstalldirs) $(DESTDIR)$(schemadir)
 	$(INSTALL_DATA) $(INSTALL_DATA_LOCAL_SCHEMA) $(DESTDIR)$(schemadir)
 	$(INSTALL_DATA) $(INSTALL_DATA_CONTRIB) $(DESTDIR)$(contribdir)
 	$(INSTALL_DATA) $(INSTALL_DATA_EXCHANGE_CONTRIB) $(DESTDIR)$(exchangecontribdir)
